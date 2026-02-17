@@ -10,7 +10,7 @@ class ContactSubmissionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ContactSubmission
-        fields = ['id', 'name', 'email', 'phone', 'subject', 'message', 'created_at']
+        fields = ['id', 'name', 'email', 'phone', 'subject', 'message', 'is_read', 'created_at']
         read_only_fields = ['id', 'created_at']
 
     def validate(self, data):

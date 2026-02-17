@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/', include('team.urls')),
     path('api/', include('contact.urls')),
     path('api/admin/', include('accounts.urls')),
+    path('api/admin/leads/', include('contact.admin_urls')),
 ]
 
 # Serve media files (uploaded images) in both dev and production

@@ -5,13 +5,44 @@ import logging
 from django.conf import settings
 from django.core.mail import send_mail
 from rest_framework import generics, status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from .models import ContactSubmission
 from .serializers import ContactSubmissionSerializer
 
 logger = logging.getLogger(__name__)
+
+
+# ─── Admin Leads API (for Admin Dashboard frontend) ─────────────────────────────
+
+class AdminLeadListView(generics.ListAPIView):
+    """Admin: list all contact submissions (leads) with optional search and filter."""
+    queryset = ContactSubmission.objects.all().order_by('-created_at')
+    serializer_class = ContactSubmissionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        from django.db.models import Q
+        qs = super().get_queryset()
+        search = self.request.query_params.get('search', '').strip()
+        is_read = self.request.query_params.get('is_read')
+        if search:
+            qs = qs.filter(
+                Q(name__icontains=search) | Q(email__icontains=search)
+                | Q(message__icontains=search) | Q(subject__icontains=search)
+            )
+        if is_read is not None and is_read != '':
+            qs = qs.filter(is_read=is_read.lower() == 'true')
+        return qs
+
+
+class AdminLeadDetailView(generics.RetrieveUpdateAPIView):
+    """Admin: retrieve or partial update a single lead (e.g. mark as read/unread)."""
+    queryset = ContactSubmission.objects.all()
+    serializer_class = ContactSubmissionSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'put', 'patch']
 
 
 class ContactRateThrottle(AnonRateThrottle):
