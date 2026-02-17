@@ -61,7 +61,7 @@ class AdminLoginView(APIView):
 
 class AdminLogoutView(APIView):
     """Admin logout endpoint - blacklist refresh token."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         try:

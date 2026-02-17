@@ -17,6 +17,7 @@ db.sqlite3-journal
 /staticfiles
 .env
 .env.local
+deploy-seed-env.yaml
 
 # IDE
 .idea/

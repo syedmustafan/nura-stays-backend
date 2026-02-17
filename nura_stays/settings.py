@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     # Third party
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
     # Local apps
@@ -76,14 +77,20 @@ if db_engine == 'django.db.backends.sqlite3':
         }
     }
 else:
+    db_options = {}
+    db_host = os.getenv('DATABASE_HOST', 'localhost')
+    # Cloud SQL Unix socket (e.g. /cloudsql/PROJECT:REGION:INSTANCE)
+    if db_host.startswith('/cloudsql/'):
+        db_options['OPTIONS'] = {'connect_timeout': 10}
     DATABASES = {
         'default': {
             'ENGINE': db_engine,
             'NAME': os.getenv('DATABASE_NAME', 'nura_stays'),
             'USER': os.getenv('DATABASE_USER', ''),
             'PASSWORD': os.getenv('DATABASE_PASSWORD', ''),
-            'HOST': os.getenv('DATABASE_HOST', 'localhost'),
-            'PORT': os.getenv('DATABASE_PORT', ''),
+            'HOST': db_host,
+            'PORT': os.getenv('DATABASE_PORT', '') or ('5432' if 'postgresql' in os.getenv('DATABASE_ENGINE', '') else '3306'),
+            **db_options,
         }
     }
 
@@ -103,9 +110,12 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files
+# Media files (uploads). Use MEDIA_ROOT=/tmp/media on Cloud Run for writable storage.
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = Path(os.getenv('MEDIA_ROOT', str(BASE_DIR / 'media')))
+
+# Behind Cloud Run load balancer: use X-Forwarded-Proto so image URLs are https://
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -150,6 +160,17 @@ SIMPLE_JWT = {
 # WhatsApp & Contact
 WHATSAPP_NUMBER = os.getenv('WHATSAPP_NUMBER', '447000000000')
 CONTACT_EMAIL = os.getenv('CONTACT_EMAIL', 'info@nurastays.com')
+# Email address to receive contact form submissions
+CONTACT_EMAIL_TO = os.getenv('CONTACT_EMAIL_TO', '')
+
+# Email (Gmail SMTP) for sending contact form notifications
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'noreply@nurastays.com')
 
 # File upload limits
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
